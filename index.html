@@ -541,10 +541,13 @@ document.addEventListener("visibilitychange", wakeLock);
 
 let audio=null;
 function beep(){ try { audio = audio || new (window.AudioContext||window.webkitAudioContext)(); [0,0.25,0.5].forEach(t=>{ const o=audio.createOscillator(), g=audio.createGain(); o.frequency.value=880; g.gain.setValueAtTime(0.0001,audio.currentTime+t); g.gain.exponentialRampToValueAtTime(0.25,audio.currentTime+t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,audio.currentTime+t+0.18); o.connect(g).connect(audio.destination); o.start(audio.currentTime+t); o.stop(audio.currentTime+t+0.2); }); } catch(e){} }
-let rest=null;
+let rest = lsGet("restState", null);
+if (rest && (!rest.end || Date.now()-rest.end > 60000)) rest = null;
+if (rest && Date.now() >= rest.end) rest.beeped = true;
 function startRest(){ try { audio = audio || new (window.AudioContext||window.webkitAudioContext)(); audio.resume && audio.resume(); } catch(e){} rest={end:Date.now()+S.restDur*1000, dur:S.restDur, beeped:false}; drawRest(); }
 function drawRest(){
   const el=$("#timer");
+  lsSet("restState", rest);
   if (!rest){ el.hidden=true; return; }
   const left=Math.round((rest.end-Date.now())/1000), over=left<=0, a=Math.abs(left);
   if (over && !rest.beeped){ rest.beeped=true; beep(); }
