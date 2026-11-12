@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Libreta de Hierro</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -105,6 +105,9 @@ h2.sec{font-family:var(--f-display);font-weight:800;font-size:22px;text-transfor
 .unit{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:6px;background:var(--surface-2);color:var(--muted);flex:none;white-space:nowrap}
 .last{font-size:12.5px;color:var(--muted);background:var(--surface-2);border-radius:10px;padding:7px 10px;line-height:1.5}
 .last b{color:var(--ink);font-weight:600}
+.rec{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);padding:0 10px}
+.rec b{color:var(--ink);font-family:var(--f-display);font-size:18px;font-weight:800}
+.rec.beat b{text-decoration:line-through;color:var(--faint)}
 
 .sets{display:flex;flex-direction:column;gap:6px}
 .set{display:grid;grid-template-columns:22px 66px 54px minmax(0,1fr) 44px;gap:6px;align-items:center}
@@ -210,7 +213,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
 @media (max-width:370px){.set{grid-template-columns:20px 58px 48px minmax(0,1fr) 42px;gap:5px}.brand{font-size:28px}}
 </style>
-<style>:root{padding-top:env(safe-area-inset-top,0px)}body{margin:0;min-height:100vh}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>html,body,button,a,label,input,select{touch-action:manipulation}html{-webkit-text-size-adjust:100%}input.fld,select.fld,.fld{font-size:16px!important}:root{padding-top:env(safe-area-inset-top,0px)}body{margin:0;min-height:100vh}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body>
 
 
@@ -296,6 +299,20 @@ function lastFor(exId, excludeId){
   }
   return null;
 }
+function bestSet(exId, excludeId){
+  let best=null;
+  for (const s of S.sessions){
+    if (s.id===excludeId) continue;
+    const sets = s.log && s.log[exId] && s.log[exId].sets;
+    if (!sets) continue;
+    for (const st of sets){
+      if (st.kg==null || !st.reps) continue;
+      if (!best || st.kg>best.kg || (st.kg===best.kg && st.reps>best.reps)) best={kg:st.kg, reps:st.reps, date:s.date};
+    }
+  }
+  return best;
+}
+const beats = (st, rec) => st && st.kg!=null && st.reps && (!rec || st.kg>rec.kg || (st.kg===rec.kg && st.reps>rec.reps));
 function lastTrained(g){
   for (const s of sortedSessions()){
     if (s.status!=="done") continue;
@@ -338,6 +355,11 @@ function render(){
   const app = $("#app");
   if (S.status==="loading") { app.innerHTML = `<div class="empty"><div class="big">Cargando tu rutina</div><div>Tus ejercicios, series y pesos aparecen aquí en unos segundos.</div></div>`; return; }
   if (S.status==="slow" && !S.routine) { app.innerHTML = `<div class="empty"><div class="big">Sin conexión todavía</div><div>No llegan tus datos. Revisa la conexión; la app sigue intentándolo.</div></div>`; return; }
+  if (S.status==="welcome") { app.innerHTML = `<div class="empty" style="padding-top:28px"><div class="big">Bienvenido</div><div>Tus entrenos se guardan solo en este móvil. ¿Cómo quieres empezar?</div>
+    <div class="stack" style="width:100%;max-width:360px;margin-top:10px"><button class="btn btn-primary btn-block" data-act="seed-routine">Copiar la rutina de ejemplo</button>
+    <button class="btn btn-ghost btn-block" data-act="seed-empty">Empezar de cero</button>
+    <label class="btn btn-ghost btn-block" for="import-file">Restaurar una copia de seguridad</label><input type="file" id="import-file" accept="application/json,.json" hidden></div>
+    <div class="faint" style="font-size:12px">La rutina de ejemplo trae los ejercicios, sin series ni pesos. Podrás cambiarla en la pestaña Rutina.</div></div>`; return; }
   if (S.status==="nodb") { app.innerHTML = `<div class="empty"><div class="big">Ábrela desde claude.ai</div><div>Aquí no se puede acceder al guardado. Abre el enlace de la app con tu cuenta de Claude para ver tu rutina y guardar entrenos.</div></div>`; return; }
   const v = {entrenar:viewTrain, historial:viewHistory, progreso:viewProgress, peso:viewWeight, rutina:viewRoutine}[S.tab] || viewTrain;
   app.innerHTML = (S.status==="slow" ? `<div class="notice" style="margin-top:8px">Puede que estos datos no estén al día: no se llega al guardado.</div>` : "") + v();
@@ -390,6 +412,8 @@ function viewSession(s){
 function exCard(s, e){
   const l = s.log[e.id] || (s.log[e.id] = {sets:[]});
   const prev = lastFor(e.id, s.id);
+  const rec = bestSet(e.id, s.id);
+  const newRec = rec && l.sets.some(st => st.done && beats(st, rec));
   const complete = l.sets.length && l.sets.every(x=>x.done);
   const rows = l.sets.map((st,i) => {
     const p = prev && prev.sets[i];
@@ -403,6 +427,7 @@ function exCard(s, e){
   return `<div class="ex ${complete?"complete":""}">
     <div class="ex-head"><div style="flex:1;min-width:0"><button class="ex-name" data-act="prog" data-v="${e.id}">${esc(e.name)}</button>${e.setup?`<div class="ex-setup">${esc(e.setup)}</div>`:""}</div><span class="unit">${UNIT[e.unit]||"kg"}</span></div>
     ${prev ? `<div class="last">Última vez · ${fmtDate(prev.date,{day:"numeric",month:"short"})}<br><b>${prev.sets.map(setTxt).map(esc).join(" · ")}</b></div>` : `<div class="last">Primera vez con este ejercicio</div>`}
+    ${rec ? `<div class="rec ${newRec?"beat":""}"><span>🏆 Récord · ${fmtDate(rec.date,{day:"numeric",month:"short"})}</span><b>${fk(rec.kg)}×${rec.reps}</b>${newRec?`<span class="pill ok">¡Nuevo récord!</span>`:""}</div>` : ""}
     <div class="sets"><div class="set set-h"><span>#</span><span style="text-align:center">${e.unit==="total"?"Kg":UNIT[e.unit]}</span><span style="text-align:center">Reps</span><span>Extra</span><span></span></div>${rows}</div>
     <div class="ex-actions"><button data-act="addset" data-ex="${e.id}">+ Serie</button>${l.sets.length?`<button data-act="rmset" data-ex="${e.id}">− Quitar serie</button>`:""}</div>
   </div>`;
@@ -615,7 +640,9 @@ document.addEventListener("click", ev => {
     case "cancel-yes": { if (!s) break; S.sessions=S.sessions.filter(x=>x.id!==s.id); S.confirm=null; rest=null; drawRest(); persist(0); render(); toast("Entreno descartado"); break; }
     case "confirm-no": S.confirm=null; S.pendingImport=null; render(); break;
     case "export": exportBackup(); break;
-    case "import-yes": if (S.pendingImport){ applyData(S.pendingImport); S.pendingImport=null; S.confirm=null; persistNow(); render(); toast("Copia restaurada"); } break;
+    case "seed-empty": S.status="ready"; persistNow(); render(); break;
+    case "seed-routine": fetch("seed.json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null).then(d=>{ if(!d||!d.routine){ toast("Necesitas conexión para descargar la rutina"); return; } S.routine=d.routine; S.status="ready"; persistNow(); S.tab="rutina"; render(); toast("Rutina copiada"); }); break;
+    case "import-yes": if (S.pendingImport){ applyData(S.pendingImport); S.pendingImport=null; S.confirm=null; S.status="ready"; persistNow(); render(); toast("Copia restaurada"); } break;
     case "toggle": S.open.has(v)?S.open.delete(v):S.open.add(v); S.confirm=null; render(); break;
     case "del": S.confirm="del:"+v; render(); break;
     case "del-yes": S.sessions=S.sessions.filter(x=>x.id!==v); S.confirm=null; persist(0); render(); toast("Entreno borrado"); break;
@@ -644,12 +671,9 @@ function applyData(d){
 (async function boot(){
   let d=null;
   try { const raw = localStorage.getItem(KEY); if (raw) d = JSON.parse(raw); } catch(e){}
-  if (!d){
-    try { const r = await fetch("seed.json", {cache:"no-cache"}); if (r.ok) d = await r.json(); } catch(e){}
-    if (d){ applyData(d); persistNow(); }
-  }
-  applyData(d || {});
-  S.status = "ready"; render(); wakeLock();
+  if (!d){ applyData({}); S.status = "welcome"; render(); return; }
+  applyData(d);
+  S.status = "ready"; render(); dropFocus(); wakeLock();
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e){}
 })();
 
@@ -667,10 +691,17 @@ async function exportBackup(){
 document.addEventListener("change", ev => {
   if (ev.target.id !== "import-file" || !ev.target.files[0]) return;
   const f = ev.target.files[0]; const rd = new FileReader();
-  rd.onload = () => { try { const d = JSON.parse(rd.result); if (!d.routine || !Array.isArray(d.sessions)) throw 0; S.pendingImport = d; S.confirm = "import"; render(); } catch(e){ toast("Ese archivo no es una copia válida"); } };
+  rd.onload = () => { try { const d = JSON.parse(rd.result); if (!d.routine || !Array.isArray(d.sessions)) throw 0; if (S.status==="welcome"){ applyData(d); S.status="ready"; persistNow(); render(); toast("Copia restaurada"); return; } S.pendingImport = d; S.confirm = "import"; render(); } catch(e){ toast("Ese archivo no es una copia válida"); } };
   rd.readAsText(f); ev.target.value = "";
 });
 
+/* al salir o volver a la app, nada queda seleccionado: sin teclado de por medio */
+function dropFocus(){ const el=document.activeElement; if (el && el!==document.body && el.blur) el.blur(); }
+document.addEventListener("visibilitychange", () => { dropFocus(); if (document.visibilityState==="visible") setTimeout(dropFocus, 60); });
+window.addEventListener("pagehide", dropFocus);
+window.addEventListener("pageshow", () => setTimeout(dropFocus, 60));
+/* sin zoom: bloquea el pellizco; el doble toque lo quita touch-action */
+["gesturestart","gesturechange","gestureend"].forEach(t => document.addEventListener(t, e => e.preventDefault(), {passive:false}));
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
 }
