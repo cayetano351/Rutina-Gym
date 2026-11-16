@@ -212,9 +212,9 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
 .seg button{padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
 /* muñeco de músculos */
-:root{--heat-0:#D3361F;--heat-1:#EE7A1E;--heat-2:#E0B02A;--heat-3:#C7CED6;--body:#DCE1E7}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--heat-0:#F2543B;--heat-1:#F28B33;--heat-2:#E6BE45;--heat-3:#3A414B;--body:#262C34}}
-:root[data-theme="dark"]{--heat-0:#F2543B;--heat-1:#F28B33;--heat-2:#E6BE45;--heat-3:#3A414B;--body:#262C34}
+:root{--heat-0:#1F9A50;--heat-1:#9BC53D;--heat-2:#EE8A1E;--heat-3:#D3361F;--body:#DCE1E7}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--heat-0:#3EBD74;--heat-1:#B5D65A;--heat-2:#F29B3D;--heat-3:#F2543B;--body:#262C34}}
+:root[data-theme="dark"]{--heat-0:#3EBD74;--heat-1:#B5D65A;--heat-2:#F29B3D;--heat-3:#F2543B;--body:#262C34}
 .bodymap{display:block;width:100%;max-width:420px;height:auto;margin:0 auto}
 .bodymap .b{fill:var(--body);opacity:.7}
 .bodymap .m{stroke:var(--surface);stroke-width:.5;stroke-linejoin:round;transition:fill .2s}
@@ -512,7 +512,7 @@ function bodyMap(){
       <g>${fig("anterior")}</g><g transform="translate(110 0)">${fig("posterior")}</g>
       <text x="50" y="210" text-anchor="middle">DELANTE</text><text x="160" y="210" text-anchor="middle">DETRÁS</text>
     </svg>
-    <div class="heat-legend"><span><i style="background:var(--heat-0)"></i>Hoy o ayer</span><span><i style="background:var(--heat-1)"></i>2–3 días</span><span><i style="background:var(--heat-2)"></i>4–6 días</span><span><i style="background:var(--heat-3)"></i>+7 días</span></div>
+    <div class="heat-legend"><span><i style="background:var(--heat-0)"></i>Hoy o ayer</span><span><i style="background:var(--heat-1)"></i>2–3 días</span><span><i style="background:var(--heat-2)"></i>4–6 días</span><span><i style="background:var(--heat-3)"></i>+7 días · toca</span></div>
     ${nudge}
     <div class="faint" style="font-size:12px;text-align:center">Toca un músculo para elegirlo</div>
   </div>`;
